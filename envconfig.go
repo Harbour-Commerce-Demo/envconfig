@@ -20,10 +20,17 @@ func Load(prefix string, v any) error {
 	if rv.Kind() != reflect.Pointer || rv.Elem().Kind() != reflect.Struct {
 		return errors.New("envconfig: Load needs a pointer to a struct")
 	}
-	return load(prefix, rv.Elem())
+	return load(prefix, rv.Elem(), 0)
 }
 
-func load(prefix string, rv reflect.Value) error {
+// maxDepth bounds struct nesting, so a self-referential struct pointer fails
+// instead of recursing until the stack overflows.
+const maxDepth = 32
+
+func load(prefix string, rv reflect.Value, depth int) error {
+	if depth > maxDepth {
+		return fmt.Errorf("envconfig: %s: structs nested deeper than %d", prefix, maxDepth)
+	}
 	rt := rv.Type()
 	for i := range rt.NumField() {
 		f := rt.Field(i)
@@ -40,7 +47,7 @@ func load(prefix string, rv reflect.Value) error {
 
 		fv := rv.Field(i)
 		if f.Type.Kind() == reflect.Struct && f.Type != durationType {
-			if err := load(name, fv); err != nil {
+			if err := load(name, fv, depth+1); err != nil {
 				return err
 			}
 			continue
@@ -49,7 +56,7 @@ func load(prefix string, rv reflect.Value) error {
 			if fv.IsNil() {
 				fv.Set(reflect.New(f.Type.Elem()))
 			}
-			if err := load(name, fv.Elem()); err != nil {
+			if err := load(name, fv.Elem(), depth+1); err != nil {
 				return err
 			}
 			continue

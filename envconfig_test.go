@@ -2,6 +2,7 @@ package envconfig
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -74,5 +75,18 @@ func TestLoadNotStructPointer(t *testing.T) {
 	var c config
 	if err := Load("APP", c); err == nil {
 		t.Fatal("expected an error")
+	}
+}
+
+type node struct {
+	Name string `env:"NAME"`
+	Next *node  `env:"NEXT"`
+}
+
+func TestLoadSelfReferential(t *testing.T) {
+	var n node
+	err := Load("APP", &n)
+	if err == nil || !strings.Contains(err.Error(), "structs nested deeper than 32") {
+		t.Fatalf("got %v", err)
 	}
 }
