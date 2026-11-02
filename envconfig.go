@@ -82,7 +82,7 @@ func set(fv reflect.Value, raw string) error {
 	if fv.Type() == durationType {
 		d, err := time.ParseDuration(raw)
 		if err != nil {
-			return err
+			return invalid(fv)
 		}
 		fv.SetInt(int64(d))
 		return nil
@@ -94,25 +94,25 @@ func set(fv reflect.Value, raw string) error {
 	case reflect.Bool:
 		b, err := strconv.ParseBool(raw)
 		if err != nil {
-			return err
+			return invalid(fv)
 		}
 		fv.SetBool(b)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		n, err := strconv.ParseInt(raw, 10, fv.Type().Bits())
 		if err != nil {
-			return err
+			return invalid(fv)
 		}
 		fv.SetInt(n)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		n, err := strconv.ParseUint(raw, 10, fv.Type().Bits())
 		if err != nil {
-			return err
+			return invalid(fv)
 		}
 		fv.SetUint(n)
 	case reflect.Float32, reflect.Float64:
 		n, err := strconv.ParseFloat(raw, fv.Type().Bits())
 		if err != nil {
-			return err
+			return invalid(fv)
 		}
 		fv.SetFloat(n)
 	case reflect.Slice:
@@ -130,4 +130,10 @@ func set(fv reflect.Value, raw string) error {
 		return fmt.Errorf("unsupported type %s", fv.Type())
 	}
 	return nil
+}
+
+// invalid reports a value that doesn't parse as fv's type. It never repeats the
+// value, which may be a secret that would otherwise end up in logs.
+func invalid(fv reflect.Value) error {
+	return fmt.Errorf("not a valid %s", fv.Type())
 }

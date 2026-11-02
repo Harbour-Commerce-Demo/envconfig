@@ -66,7 +66,17 @@ func TestLoadInvalidValue(t *testing.T) {
 
 	var c config
 	err := Load("APP", &c)
-	if err == nil || err.Error() != `envconfig: APP_DB_MAX_CONNS: strconv.ParseInt: parsing "lots": invalid syntax` {
+	if err == nil || err.Error() != "envconfig: APP_DB_MAX_CONNS: not a valid int" {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestLoadInvalidValueNotInError(t *testing.T) {
+	t.Setenv("APP_TIMEOUT", "s3cr3t-token")
+
+	var c config
+	err := Load("APP", &c)
+	if err == nil || strings.Contains(err.Error(), "s3cr3t-token") {
 		t.Fatalf("got %v", err)
 	}
 }
