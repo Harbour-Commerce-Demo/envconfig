@@ -4,6 +4,7 @@ package envconfig
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"reflect"
 	"strconv"
@@ -111,7 +112,8 @@ func set(fv reflect.Value, raw string) error {
 		fv.SetUint(n)
 	case reflect.Float32, reflect.Float64:
 		n, err := strconv.ParseFloat(raw, fv.Type().Bits())
-		if err != nil {
+		// NaN and Inf make every comparison in a limit check misbehave, so reject them.
+		if err != nil || math.IsNaN(n) || math.IsInf(n, 0) {
 			return invalid(fv)
 		}
 		fv.SetFloat(n)

@@ -81,6 +81,22 @@ func TestLoadInvalidValueNotInError(t *testing.T) {
 	}
 }
 
+func TestLoadRejectsNonFiniteFloat(t *testing.T) {
+	for _, raw := range []string{"NaN", "+Inf", "-Inf"} {
+		t.Run(raw, func(t *testing.T) {
+			t.Setenv("APP_RATIO", raw)
+
+			var c struct {
+				Ratio float64 `env:"RATIO"`
+			}
+			err := Load("APP", &c)
+			if err == nil || err.Error() != "envconfig: APP_RATIO: not a valid float64" {
+				t.Fatalf("got %v", err)
+			}
+		})
+	}
+}
+
 func TestLoadNotStructPointer(t *testing.T) {
 	var c config
 	if err := Load("APP", c); err == nil {
